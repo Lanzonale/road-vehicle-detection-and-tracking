@@ -1,0 +1,28 @@
+
+
+path: datasets/road_vehicle/trafic_data
+train: train/images
+val: valid/images
+
+names:
+  0: car
+  1: bus
+  2: motorbike
+  3: three wheelers -CNG-
+  4: rickshaw
+  5: truck
+  6: pickup
+  7: minivan
+  8: suv
+  9: van
+  10: bicycle
+  11: auto rickshaw
+  12: human hauler
+  13: wheelbarrow
+  14: ambulance
+  15: minibus
+  16: taxi
+  17: army vehicle
+  18: scooter
+  19: policecar
+  20: garbagevan
