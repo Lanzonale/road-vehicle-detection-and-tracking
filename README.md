@@ -1,11 +1,14 @@
-# Road Vehicle Detection, Tracking, and Line-Crossing Counting
+# Road Vehicle Detection and Tracking
 
-This project fine-tunes YOLOv8 on the Kaggle **Road Vehicle Images Dataset** and applies the trained detector to video multi-object tracking, occlusion / ID-switch analysis, and line-crossing vehicle counting.
+本项目使用 Kaggle 的 **Road Vehicle Images Dataset** 微调 YOLOv8n，并完成道路车辆检测、视频多目标跟踪、遮挡 / ID 跳变分析和越线计数。
 
-Dataset page:
-https://www.kaggle.com/datasets/ashfakyeafi/road-vehicle-images-dataset
+## 项目链接
 
-## 1. Environment
+* GitHub Repository: [https://github.com/Lanzonale/road-vehicle-detection-and-tracking](https://github.com/Lanzonale/road-vehicle-detection-and-tracking)
+* Model Weights: [https://drive.google.com/file/d/1zcZLa_ImniVXMuKyDiwSHHv4ebbTCT6V/view?usp=sharing](https://drive.google.com/file/d/1zcZLa_ImniVXMuKyDiwSHHv4ebbTCT6V/view?usp=sharing)
+* Dataset: [https://www.kaggle.com/datasets/ashfakyeafi/road-vehicle-images-dataset](https://www.kaggle.com/datasets/ashfakyeafi/road-vehicle-images-dataset)
+
+## 1. 环境配置
 
 ```bash
 conda create -n vehicle_tracking python=3.10 -y
@@ -13,15 +16,15 @@ conda activate vehicle_tracking
 pip install -r requirements.txt
 ```
 
-Log in to Weights & Biases before training:
+登录 W&B：
 
 ```bash
 wandb login
 ```
 
-## 2. Download Dataset
+## 2. 数据集下载
 
-Create a Kaggle API token from your Kaggle account settings, then put `kaggle.json` at `~/.kaggle/kaggle.json`.
+使用 Kaggle API：
 
 ```bash
 mkdir -p ~/.kaggle
@@ -30,10 +33,16 @@ chmod 600 ~/.kaggle/kaggle.json
 python scripts/download_dataset.py --out datasets/road_vehicle
 ```
 
-Expected dataset structure:
+检查数据集：
+
+```bash
+python scripts/check_dataset.py --data configs/road_vehicle.yaml
+```
+
+数据集目录示例：
 
 ```text
-datasets/road_vehicle/
+datasets/road_vehicle/trafic_data/
 ├── train/
 │   ├── images/
 │   └── labels/
@@ -42,139 +51,118 @@ datasets/road_vehicle/
     └── labels/
 ```
 
-If your extracted folders differ, update `configs/road_vehicle.yaml` accordingly.
-
-Check the dataset:
+## 3. 模型训练
 
 ```bash
-python scripts/check_dataset.py --data configs/road_vehicle.yaml
+yolo detect train \
+  model=./yolov8n.pt \
+  data=configs/road_vehicle.yaml \
+  epochs=80 \
+  imgsz=640 \
+  batch=16 \
+  optimizer=SGD \
+  lr0=0.01 \
+  device=0 \
+  project=/dev/shm/rv_work/runs \
+  name=yolov8n-road-vehicle \
+  amp=False
 ```
 
-## 3. Train YOLOv8 with W&B
+## 4. 模型验证
 
 ```bash
-python scripts/train.py \
-  --data configs/road_vehicle.yaml \
-  --model yolov8n.pt \
-  --epochs 80 \
-  --imgsz 640 \
-  --batch 16 \
-  --optimizer SGD \
-  --lr0 0.01 \
-  --device 0 \
-  --wandb \
-  --wandb-project road-vehicle-yolov8-tracking \
-  --name yolov8n-road-vehicle
+yolo detect val \
+  model=/dev/shm/rv_work/runs/yolov8n-road-vehicle-3/weights/best.pt \
+  data=configs/road_vehicle.yaml \
+  imgsz=640 \
+  batch=16 \
+  device=0
 ```
 
-Training outputs:
-
-```text
-runs/vehicle_detection/yolov8n-road-vehicle/
-├── results.csv
-├── results.png
-└── weights/
-    ├── best.pt
-    └── last.pt
-```
-
-The W&B run will contain training loss curves, validation loss curves, precision, recall, and mAP curves. Use screenshots from W&B in the PDF report.
-
-## 4. Validate
-
-```bash
-python scripts/val.py \
-  --weights runs/vehicle_detection/yolov8n-road-vehicle/weights/best.pt \
-  --data configs/road_vehicle.yaml \
-  --imgsz 640 \
-  --batch 16 \
-  --device 0 \
-  --output-json results/val_metrics.json
-```
-
-## 5. Video Tracking
-
-Put a 10-30 second test video under `videos/test_video.mp4`, then run:
+## 5. 视频多目标跟踪
 
 ```bash
 python scripts/track_video.py \
-  --weights runs/vehicle_detection/yolov8n-road-vehicle/weights/best.pt \
-  --source videos/test_video.mp4 \
-  --output results/tracking_output.mp4 \
-  --tracker botsort.yaml \
-  --conf 0.25 \
-  --iou 0.5
+  --weights /dev/shm/rv_work/runs/yolov8n-road-vehicle-3/weights/best.pt \
+  --source videos/block.mp4 \
+  --output results/final/tracking_output_botsort_final.mp4 \
+  --tracker botsort.yaml
 ```
 
-You can also try ByteTrack:
+可选：ByteTrack。
 
 ```bash
 python scripts/track_video.py \
-  --weights runs/vehicle_detection/yolov8n-road-vehicle/weights/best.pt \
-  --source videos/test_video.mp4 \
-  --output results/tracking_output_bytetrack.mp4 \
+  --weights /dev/shm/rv_work/runs/yolov8n-road-vehicle-3/weights/best.pt \
+  --source videos/block.mp4 \
+  --output results/final/tracking_output_bytetrack_final.mp4 \
   --tracker bytetrack.yaml
 ```
 
-## 6. Line-Crossing Counting
-
-Adjust the counting line coordinates to your video frame. Format: `X1 Y1 X2 Y2`.
+## 6. 越线计数
 
 ```bash
 python scripts/line_count.py \
-  --weights runs/vehicle_detection/yolov8n-road-vehicle/weights/best.pt \
-  --source videos/test_video.mp4 \
-  --output results/line_count_output.mp4 \
+  --weights /dev/shm/rv_work/runs/yolov8n-road-vehicle-3/weights/best.pt \
+  --source videos/block.mp4 \
+  --output results/final/line_count_final.mp4 \
   --tracker botsort.yaml \
-  --line 200 450 1100 450 \
-  --save-frames 120 121 122 123
+  --line 960 0 960 1080
 ```
 
-Outputs:
+## 7. 截取遮挡帧
 
-```text
-results/line_count_output.mp4
-results/crossing_events.csv
-results/occlusion_frames/frame_000120.jpg
-results/occlusion_frames/frame_000121.jpg
-results/occlusion_frames/frame_000122.jpg
-results/occlusion_frames/frame_000123.jpg
-```
-
-## 7. Extract Occlusion Frames Manually
-
-If you already have the annotated video and want to extract frames 120-123:
+使用脚本：
 
 ```bash
 python scripts/extract_occlusion_frames.py \
-  --source results/line_count_output.mp4 \
+  --source results/final/tracking_output_botsort_final.mp4 \
   --start 120 \
   --num 4 \
-  --out results/occlusion_frames
+  --out results/final/occlusion_frames
 ```
 
-## 8. Optional Local Plots
+或使用 ffmpeg：
 
-The report requirement asks for W&B or SwanLab screenshots. The following local plots are only backup figures.
+```bash
+mkdir -p results/final/occlusion_frames
+
+ffmpeg -y -i results/final/tracking_output_botsort_final.mp4 \
+  -vf "select='between(n,120,123)'" \
+  -vsync 0 \
+  results/final/occlusion_frames/frame_%03d.jpg
+```
+
+## 8. 本地绘制训练曲线（可选）
 
 ```bash
 python scripts/plot_results_local.py \
-  --results-csv runs/vehicle_detection/yolov8n-road-vehicle/results.csv \
+  --results-csv /dev/shm/rv_work/runs/yolov8n-road-vehicle-3/results.csv \
   --out-dir results/local_plots
 ```
 
-## 9. Model Weights Link
-
-Upload this file to Google Drive / Baidu Netdisk:
+## 9. 项目结构
 
 ```text
-runs/vehicle_detection/yolov8n-road-vehicle/weights/best.pt
+road_vehicle_yolov8_tracking/
+├── configs/
+│   └── road_vehicle.yaml
+├── scripts/
+│   ├── check_dataset.py
+│   ├── download_dataset.py
+│   ├── extract_occlusion_frames.py
+│   ├── line_count.py
+│   ├── plot_results_local.py
+│   ├── track_video.py
+│   ├── train.py
+│   └── val.py
+├── docs/
+├── results/
+├── requirements.txt
+├── README.md
+└── .gitignore
 ```
 
-Then paste the public download link into the PDF report.
+## 10. 说明
 
-## 10. Required Links in Final PDF Report
-
-- GitHub repo: `https://github.com/<your-name>/road-vehicle-detection-tracking`
-- Model weights: Google Drive / Baidu Netdisk link
-- W&B screenshots: training loss, validation loss, precision/recall/mAP curves
+仓库中不包含完整数据集、训练权重和大视频文件。数据集请从 Kaggle 下载，训练好的模型权重见上方 Google Drive 链接。
