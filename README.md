@@ -3,8 +3,6 @@
 本项目使用 Kaggle 的 **Road Vehicle Images Dataset** 微调 YOLOv8n，并完成道路车辆检测、视频多目标跟踪、遮挡 / ID 跳变分析和越线计数。
 
 ## 项目链接
-
-* GitHub Repository: [https://github.com/Lanzonale/road-vehicle-detection-and-tracking](https://github.com/Lanzonale/road-vehicle-detection-and-tracking)
 * Model Weights: [https://drive.google.com/file/d/1zcZLa_ImniVXMuKyDiwSHHv4ebbTCT6V/view?usp=sharing](https://drive.google.com/file/d/1zcZLa_ImniVXMuKyDiwSHHv4ebbTCT6V/view?usp=sharing)
 * Dataset: [https://www.kaggle.com/datasets/ashfakyeafi/road-vehicle-images-dataset](https://www.kaggle.com/datasets/ashfakyeafi/road-vehicle-images-dataset)
 
@@ -107,41 +105,11 @@ python scripts/line_count.py \
   --source videos/block.mp4 \
   --output results/final/line_count_final.mp4 \
   --tracker botsort.yaml \
-  --line 960 0 960 1080
+  --line 960 0 960 1080 #根据你的视频大小改变
 ```
 
-## 7. 截取遮挡帧
 
-使用脚本：
-
-```bash
-python scripts/extract_occlusion_frames.py \
-  --source results/final/tracking_output_botsort_final.mp4 \
-  --start 120 \
-  --num 4 \
-  --out results/final/occlusion_frames
-```
-
-或使用 ffmpeg：
-
-```bash
-mkdir -p results/final/occlusion_frames
-
-ffmpeg -y -i results/final/tracking_output_botsort_final.mp4 \
-  -vf "select='between(n,120,123)'" \
-  -vsync 0 \
-  results/final/occlusion_frames/frame_%03d.jpg
-```
-
-## 8. 本地绘制训练曲线（可选）
-
-```bash
-python scripts/plot_results_local.py \
-  --results-csv /dev/shm/rv_work/runs/yolov8n-road-vehicle-3/results.csv \
-  --out-dir results/local_plots
-```
-
-## 9. 项目结构
+## 7. 项目结构
 
 ```text
 road_vehicle_yolov8_tracking/
@@ -165,4 +133,4 @@ road_vehicle_yolov8_tracking/
 
 ## 10. 说明
 
-仓库中不包含完整数据集、训练权重和大视频文件。数据集请从 Kaggle 下载，训练好的模型权重见上方 Google Drive 链接。
+仓库中不包含完整数据集、训练权重和大视频原件。数据集请从 Kaggle 下载，训练好的模型权重见上方 Google Drive 链接。
